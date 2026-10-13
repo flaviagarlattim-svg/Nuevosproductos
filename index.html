@@ -151,6 +151,13 @@
       <div class="f"><label for="precio">Precio sugerido de venta <span class="req">*</span></label><div class="cop"><span>$</span><input type="text" id="precio" class="money" inputmode="numeric" placeholder="0"></div></div>
       <div class="f"><label for="porciones">Número de porciones de la receta <span class="req">*</span></label><select id="porciones" class="porc"></select></div>
       <div class="f"><label for="tamano">Tamaño de la porción <span class="req">*</span></label><div class="combo"><input type="number" id="tamano" min="0" step="any" inputmode="decimal" placeholder="0"><select id="tamanoU" class="uni" aria-label="Unidad del tamaño de la porción"></select></div></div>
+      <div class="question full" style="margin:4px 0 0">
+        <p class="q-text">¿Tu gerente ya conoce esta propuesta? <span class="req">*</span></p>
+        <div class="yesno" id="gerenteQ">
+          <label><input type="radio" name="gerente" value="Sí"><span>Sí</span></label>
+          <label><input type="radio" name="gerente" value="No"><span>No</span></label>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -485,6 +492,7 @@ function validateAll() {
    ['#menaje','Falta el tipo de menaje.'],['#precio','Falta el precio sugerido de venta.'],['#porciones','Selecciona el número de porciones.'],
    ['#tamano','Falta el tamaño de la porción.'],['#tamanoU','Selecciona la unidad del tamaño de la porción.']]
     .forEach(([s, m]) => { const f = $(s); if (!f.value.trim() || (s === '#precio' && !parseMoney(f.value))) { f.classList.add('invalid'); errs.push({el: f, msg: m}); } });
+  if (!document.querySelector('input[name="gerente"]:checked')) { $('#gerenteQ').classList.add('invalid'); errs.push({el: $('#gerenteQ'), msg: 'Indica si tu gerente ya conoce esta propuesta.'}); }
   ingMain.validate(errs, 'Ingredientes');
   if (!$('#proc').value.trim()) { $('#proc').classList.add('invalid'); errs.push({el: $('#proc'), msg: 'Falta el procedimiento de la receta.'}); }
   const ts = document.querySelector('input[name="tieneSub"]:checked');
@@ -508,6 +516,7 @@ function collect() {
     autor: $('#autor').value.trim(), nombre: $('#nombre').value.trim(), sede: $('#sede').value, categoria: $('#categoria').value,
     menaje: $('#menaje').value.trim(), precio: parseMoney($('#precio').value), porciones: $('#porciones').value,
     tam: $('#tamano').value, tamU: $('#tamanoU').value,
+    gerente: document.querySelector('input[name="gerente"]:checked').value,
     ing: ingMain.data(), proc: $('#proc').value.trim(),
     tieneSub, subs: tieneSub ? subs.map(s => s.data()) : [],
     fotos: fotos.map((f, i) => ({name: f.name, data: f.data}))
@@ -534,6 +543,7 @@ function buildRows(d) {
   R.push({t: 'section', v: ['DATOS GENERALES']});
   kv('Nombre de la receta', d.nombre); kv('Sede', d.sede); kv('Categoría', d.categoria); kv('Tipo de menaje', d.menaje);
   kv('Precio sugerido de venta', d.precio, 'cop'); kv('Número de porciones', Number(d.porciones)); kv('Tamaño de la porción', `${d.tam} ${d.tamU}`);
+  kv('¿Tu gerente ya conoce esta propuesta?', d.gerente);
   R.push({t: 'section', v: ['INGREDIENTES']});
   pushIng(d.ing, 'receta');
   R.push({t: 'section', v: ['PROCEDIMIENTO']});
