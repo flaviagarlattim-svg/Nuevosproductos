@@ -38,6 +38,8 @@
   .combo{display:flex;gap:8px}
   .combo input{flex:1;min-width:0}
   .combo select{width:96px;flex:none}
+  .moneda{font-weight:600;color:var(--muted)}
+  select:disabled{background:#F6F4F1;color:var(--muted);cursor:not-allowed}
   .cop{position:relative}
   .cop span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
   .cop input{padding-left:24px}
@@ -143,12 +145,13 @@
     <div class="grid">
       <div class="f full"><label for="autor">Propuesto por <span class="req">*</span></label><input type="text" id="autor" placeholder="Nombre y cargo"></div>
       <div class="f full"><label for="nombre">Nombre de la receta <span class="req">*</span></label><input type="text" id="nombre" placeholder="Ej.: Hamburguesa Gaucha"></div>
+      <div class="f"><label for="pais">País <span class="req">*</span></label><select id="pais"></select></div>
       <div class="f"><label for="sede">Sede <span class="req">*</span></label>
-        <select id="sede"><option value="">Selecciona</option><option>Bogotá</option><option>Cali</option><option>Cartagena</option><option>Getsemaní</option><option>Guatapé</option><option>Medellín</option><option>Salento</option><option>San Andrés</option><option>Santa Marta</option><option>Tayrona</option></select></div>
+        <select id="sede" disabled><option value="">Primero elige el país</option></select></div>
       <div class="f"><label for="categoria">Categoría <span class="req">*</span></label>
         <select id="categoria"><option value="">Selecciona</option><option>Cocteles</option><option>Desayunos</option><option>Entradas</option><option>Fuertes</option><option>Postres</option><option>Eventos</option></select></div>
       <div class="f"><label for="menaje">Tipo de menaje <span class="req">*</span></label><input type="text" id="menaje" placeholder="Ej.: Vaso highball 350 ml"></div>
-      <div class="f"><label for="precio">Precio sugerido de venta <span class="req">*</span></label><div class="cop"><span>$</span><input type="text" id="precio" class="money" inputmode="numeric" placeholder="0"></div></div>
+      <div class="f"><label for="precio">Precio sugerido de venta <span id="monedaLbl" class="moneda"></span> <span class="req">*</span></label><div class="cop"><span>$</span><input type="text" id="precio" class="money" inputmode="decimal" placeholder="0"></div></div>
       <div class="f"><label for="porciones">Número de porciones de la receta <span class="req">*</span></label><select id="porciones" class="porc"></select></div>
       <div class="f"><label for="tamano">Tamaño de la porción <span class="req">*</span></label><div class="combo"><input type="number" id="tamano" min="0" step="any" inputmode="decimal" placeholder="0"><select id="tamanoU" class="uni" aria-label="Unidad del tamaño de la porción"></select></div></div>
       <div class="question full" style="margin:4px 0 0">
@@ -234,6 +237,16 @@ const CONFIG = {
 /* ========================================================= */
 
 const UNITS = ['GR','ML','UND'];
+const PAISES = {
+  'Colombia':   {moneda: 'COP', sedes: ['Tayrona','Medellín','Guatapé','Santa Marta','Getsemaní','Cartagena','Bogotá','Cali','Salento','San Andrés']},
+  'Costa Rica': {moneda: 'CRC', sedes: ['Fortuna','San José']},
+  'Panamá':     {moneda: 'USD', sedes: ['Panamá']},
+  'México':     {moneda: 'MXN', sedes: ['Sayulita','Ciudad de México','Bacalar','Oaxaca','Puerto Escondido']},
+  'Argentina':  {moneda: 'ARS', sedes: ['Buenos Aires']},
+  'Ecuador':    {moneda: 'USD', sedes: ['Quito']},
+  'Uruguay':    {moneda: 'UYU', sedes: ['Montevideo','Colonia']},
+  'Perú':       {moneda: 'PEN', sedes: ['Cusco','Lima','Paracas','Huacachina','Arequipa']}
+};
 let uid = 0;
 const nid = p => p + '_' + (++uid);
 const $ = (s, r=document) => r.querySelector(s);
@@ -242,9 +255,19 @@ const unitOpts = () => '<option value="">Unidad</option>' + UNITS.map(u => `<opt
 const porcOpts = () => '<option value="">Selecciona</option>' + Array.from({length:10}, (_,i) => `<option>${i+1}</option>`).join('');
 const fmtNum = n => Number(n).toLocaleString('es-CO', {maximumFractionDigits: 3});
 const fmtCOP = n => '$' + Number(n).toLocaleString('es-CO', {maximumFractionDigits: 0});
-const parseMoney = s => Number(String(s).replace(/\D/g, '')) || 0;
+const parseMoney = s => Number(String(s).replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
 
 document.querySelectorAll('select.porc').forEach(s => s.innerHTML = porcOpts());
+const selPais = $('#pais'), selSede = $('#sede');
+selPais.innerHTML = '<option value="">Selecciona</option>' + Object.keys(PAISES).map(p => `<option>${p}</option>`).join('');
+selPais.addEventListener('change', () => {
+  const info = PAISES[selPais.value];
+  selSede.innerHTML = info
+    ? '<option value="">Selecciona</option>' + info.sedes.slice().sort((a, b) => a.localeCompare(b, 'es')).map(s => `<option>${s}</option>`).join('')
+    : '<option value="">Primero elige el país</option>';
+  selSede.disabled = !info;
+  $('#monedaLbl').textContent = info ? `(${info.moneda})` : '';
+});
 document.querySelectorAll('select.uni').forEach(s => s.innerHTML = unitOpts());
 if (!CONFIG.SCRIPT_URL) $('#modoLocal').hidden = false;
 
@@ -252,8 +275,11 @@ if (!CONFIG.SCRIPT_URL) $('#modoLocal').hidden = false;
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.classList.contains('money')) {
-    const d = t.value.replace(/\D/g, '');
-    t.value = d ? Number(d).toLocaleString('es-CO') : '';
+    const raw = t.value.replace(/[^\d,]/g, '');
+    const [ent, ...rest] = raw.split(',');
+    const dec = rest.join('').slice(0, 2);
+    const e2 = ent.replace(/^0+(?=\d)/, '');
+    t.value = (e2 ? Number(e2).toLocaleString('es-CO') : (raw.includes(',') ? '0' : '')) + (raw.includes(',') ? ',' + dec : '');
   }
   t.classList.remove('invalid');
 });
@@ -315,7 +341,7 @@ function createIngBlock(contexto) {
     tr.innerHTML = `<td><input type="text" placeholder="Ingrediente"></td>
       <td><input type="text" placeholder="Proveedor"></td>
       <td><input type="text" placeholder="Ej.: 1 kg"></td>
-      <td><div class="cop"><span>$</span><input type="text" class="money" inputmode="numeric" placeholder="0"></div></td>
+      <td><div class="cop"><span>$</span><input type="text" class="money" inputmode="decimal" placeholder="0"></div></td>
       <td><button type="button" class="icon-btn del" aria-label="Eliminar fila">✕</button></td>`;
     tbN.appendChild(tr);
     return tr;
@@ -491,7 +517,7 @@ drop.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
 /* ================= VALIDACIÓN Y DATOS ================= */
 function validateAll() {
   const errs = [];
-  [['#autor','Indica quién propone la receta.'],['#nombre','Falta el nombre de la receta.'],['#sede','Selecciona la sede.'],['#categoria','Selecciona la categoría.'],
+  [['#autor','Indica quién propone la receta.'],['#nombre','Falta el nombre de la receta.'],['#pais','Selecciona el país.'],['#sede','Selecciona la sede.'],['#categoria','Selecciona la categoría.'],
    ['#menaje','Falta el tipo de menaje.'],['#precio','Falta el precio sugerido de venta.'],['#porciones','Selecciona el número de porciones.'],
    ['#tamano','Falta el tamaño de la porción.'],['#tamanoU','Selecciona la unidad del tamaño de la porción.']]
     .forEach(([s, m]) => { const f = $(s); if (!f.value.trim() || (s === '#precio' && !parseMoney(f.value))) { f.classList.add('invalid'); errs.push({el: f, msg: m}); } });
@@ -516,7 +542,7 @@ function collect() {
   const tieneSub = document.querySelector('input[name="tieneSub"]:checked').value === 'si';
   return {
     ...st,
-    autor: $('#autor').value.trim(), nombre: $('#nombre').value.trim(), sede: $('#sede').value, categoria: $('#categoria').value,
+    autor: $('#autor').value.trim(), nombre: $('#nombre').value.trim(), pais: selPais.value, moneda: (PAISES[selPais.value] || {}).moneda || '', sede: $('#sede').value, categoria: $('#categoria').value,
     menaje: $('#menaje').value.trim(), precio: parseMoney($('#precio').value), porciones: $('#porciones').value,
     tam: $('#tamano').value, tamU: $('#tamanoU').value,
     gerente: document.querySelector('input[name="gerente"]:checked').value,
@@ -534,8 +560,8 @@ function buildRows(d) {
     kv(`¿La ${ctx} contiene ingredientes nuevos para la sede?`, ing.nuevos ? 'Sí' : 'No');
     if (ing.nuevos) {
       R.push({t: 'label', v: ['Ingredientes nuevos']});
-      R.push({t: 'th', v: ['Ingrediente','Proveedor','Unidad de compra','Costo de compra']});
-      ing.nuevosRows.forEach(r => R.push({t: 'tr', v: [r.ing, r.prov, r.uc, r.costo], fmt: {3: 'cop'}}));
+      R.push({t: 'th', v: ['Ingrediente','Proveedor','Unidad de compra',`Costo de compra (${d.moneda})`]});
+      ing.nuevosRows.forEach(r => R.push({t: 'tr', v: [r.ing, r.prov, r.uc, r.costo], fmt: Number.isInteger(r.costo) ? {3: 'cop'} : undefined}));
     }
     R.push({t: 'label', v: [`Ingredientes de la ${ctx}`]});
     R.push({t: 'th', v: ['#','Ingrediente','Cantidad','Unidad']});
@@ -544,8 +570,8 @@ function buildRows(d) {
   R.push({t: 'title', v: [`PROPUESTA DE RECETA · ${d.nombre.toUpperCase()}`]});
   kv('ID', d.id); kv('Fecha de envío', d.fecha); kv('Propuesto por', d.autor);
   R.push({t: 'section', v: ['DATOS GENERALES']});
-  kv('Nombre de la receta', d.nombre); kv('Sede', d.sede); kv('Categoría', d.categoria); kv('Tipo de menaje', d.menaje);
-  kv('Precio sugerido de venta', d.precio, 'cop'); kv('Número de porciones', Number(d.porciones)); kv('Tamaño de la porción', `${d.tam} ${d.tamU}`);
+  kv('Nombre de la receta', d.nombre); kv('País', d.pais); kv('Sede', d.sede); kv('Categoría', d.categoria); kv('Tipo de menaje', d.menaje);
+  kv(`Precio sugerido de venta (${d.moneda})`, d.precio, Number.isInteger(d.precio) ? 'cop' : null); kv('Número de porciones', Number(d.porciones)); kv('Tamaño de la porción', `${d.tam} ${d.tamU}`);
   kv('¿Tu gerente ya conoce esta propuesta?', d.gerente);
   R.push({t: 'section', v: ['INGREDIENTES']});
   pushIng(d.ing, 'receta');
@@ -598,7 +624,7 @@ function showDone(d, local) {
   $('#done h2').textContent = local ? '¡Propuesta lista!' : '¡Propuesta enviada!';
   $('#doneMsg').innerHTML = local
     ? `Se descargó el Excel de <strong>${esc(d.nombre)}</strong>. Código: <code>${d.id}</code>`
-    : `Recibimos <strong>${esc(d.nombre)}</strong> de la sede ${esc(d.sede)}. Código de la propuesta: <code>${d.id}</code>`;
+    : `Recibimos <strong>${esc(d.nombre)}</strong> de la sede ${esc(d.sede)} (${esc(d.pais)}). Código de la propuesta: <code>${d.id}</code>`;
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
@@ -619,8 +645,8 @@ $('#form').addEventListener('submit', async e => {
     const payload = {
       id: d.id, rows,
       fotos: d.fotos.map(f => ({name: f.name, mime: 'image/jpeg', b64: f.data.split(',')[1]})),
-      indice: {id: d.id, fecha: d.fecha, nombre: d.nombre, sede: d.sede, categoria: d.categoria, autor: d.autor,
-               precio: d.precio, subrecetas: d.subs.length, fotos: d.fotos.length}
+      indice: {id: d.id, fecha: d.fecha, nombre: d.nombre, sede: `${d.sede} (${d.pais})`, categoria: d.categoria, autor: d.autor,
+               precio: `$${d.precio.toLocaleString('es-CO', {maximumFractionDigits: 2})} ${d.moneda}`, subrecetas: d.subs.length, fotos: d.fotos.length}
     };
     const r = await fetch(CONFIG.SCRIPT_URL, {method: 'POST', body: JSON.stringify(payload)});
     const j = await r.json();
