@@ -170,7 +170,7 @@
   <!-- 3. PROCEDIMIENTO -->
   <section class="card">
     <div class="sec-h"><span class="num">3</span><h2>Procedimiento</h2></div>
-    <div class="hint-box">Sé específico en <strong>cortes, procedimientos, tiempos y herramientas</strong>.</div>
+    <div class="hint-box">Sé específico en <strong>cortes, procedimientos, tiempos y herramientas</strong>.<br><strong>Verifica que los ingredientes del procedimiento coincidan con los ingredientes reportados en la receta.</strong></div>
     <textarea id="proc" aria-label="Procedimiento de la receta" placeholder="1. Cortar la cebolla en brunoise fina (3 mm) con cuchillo de chef.&#10;2. Saltear en sartén de acero a fuego medio por 4 minutos hasta que esté traslúcida.&#10;3. ..."></textarea>
   </section>
 
@@ -404,12 +404,14 @@ function createSub() {
       <div class="f"><label for="${sid}_por">Número de porciones de la receta <span class="req">*</span></label><select id="${sid}_por" class="s-por">${porcOpts()}</select></div>
       <div class="f"><label for="${sid}_tam">Tamaño de la porción <span class="req">*</span></label><div class="combo"><input type="number" id="${sid}_tam" class="s-tam" min="0" step="any" inputmode="decimal" placeholder="0"><select class="s-tamU" aria-label="Unidad del tamaño de la porción">${unitOpts()}</select></div></div>
       <div class="f full"><label for="${sid}_ren">Rendimiento final de la subreceta <span class="req">*</span></label><div class="combo" style="max-width:420px"><input type="number" id="${sid}_ren" class="s-ren" min="0" step="any" inputmode="decimal" placeholder="0"><select class="s-renU" aria-label="Unidad del rendimiento">${unitOpts()}</select></div></div>
+      <div class="f"><label for="${sid}_con">Conservación <span class="req">*</span></label><select id="${sid}_con" class="s-con"><option value="">Selecciona</option><option>Refrigeración</option><option>Congelación</option><option>Ambiente</option></select></div>
+      <div class="f"><label for="${sid}_tie">Tiempo <span class="req">*</span></label><div class="combo"><input type="number" id="${sid}_tie" class="s-tie" min="0" step="any" inputmode="decimal" placeholder="0"><select class="s-tieU" style="width:120px" aria-label="Unidad de tiempo"><option value="">Unidad</option><option>Horas</option><option>Días</option><option>Semanas</option><option>Meses</option></select></div></div>
     </div>
     <hr class="sep">
     <div class="s-ing"></div>
     <hr class="sep">
     <h4 class="sub-h">Procedimiento de la subreceta</h4>
-    <div class="hint-box">Sé específico en <strong>cortes, procedimientos, tiempos y herramientas</strong>.</div>
+    <div class="hint-box">Sé específico en <strong>cortes, procedimientos, tiempos y herramientas</strong>.<br><strong>Verifica que los ingredientes del procedimiento coincidan con los ingredientes reportados en la receta.</strong></div>
     <textarea class="s-proc" aria-label="Procedimiento de la subreceta" placeholder="1. Pelar y cortar el jengibre en láminas de 2 mm.&#10;2. Llevar a olla con el agua y el azúcar; hervir a fuego bajo 10 minutos.&#10;3. ..."></textarea>`;
   const ing = createIngBlock('subreceta');
   $('.s-ing', el).appendChild(ing.el);
@@ -417,7 +419,7 @@ function createSub() {
     el, ing,
     validate(errs, n) {
       const ctx = `Subreceta ${n}`;
-      [['.s-nom','el nombre'],['.s-por','el número de porciones'],['.s-tam','el tamaño de la porción'],['.s-tamU','la unidad del tamaño de la porción'],['.s-ren','el rendimiento final'],['.s-renU','la unidad del rendimiento']]
+      [['.s-nom','el nombre'],['.s-por','el número de porciones'],['.s-tam','el tamaño de la porción'],['.s-tamU','la unidad del tamaño de la porción'],['.s-ren','el rendimiento final'],['.s-renU','la unidad del rendimiento'],['.s-con','el tipo de conservación'],['.s-tie','el tiempo de conservación'],['.s-tieU','la unidad del tiempo de conservación']]
         .forEach(([s, m]) => { const f = $(s, el); if (!String(f.value).trim()) { f.classList.add('invalid'); errs.push({el: f, msg: `${ctx}: falta ${m}.`}); } });
       ing.validate(errs, ctx);
       const p = $('.s-proc', el);
@@ -428,6 +430,7 @@ function createSub() {
         nombre: $('.s-nom', el).value.trim(), porciones: $('.s-por', el).value,
         tam: $('.s-tam', el).value, tamU: $('.s-tamU', el).value,
         ren: $('.s-ren', el).value, renU: $('.s-renU', el).value,
+        con: $('.s-con', el).value, tie: $('.s-tie', el).value, tieU: $('.s-tieU', el).value,
         ing: ing.data(), proc: $('.s-proc', el).value.trim()
       };
     }
@@ -554,6 +557,7 @@ function buildRows(d) {
     R.push({t: 'sub', v: [`SUBRECETA ${i + 1} · ${s.nombre.toUpperCase()}`]});
     kv('Nombre de la subreceta', s.nombre); kv('Número de porciones', Number(s.porciones));
     kv('Tamaño de la porción', `${s.tam} ${s.tamU}`); kv('Rendimiento final', `${s.ren} ${s.renU}`);
+    kv('Conservación', s.con); kv('Tiempo de conservación', `${s.tie} ${s.tieU}`);
     pushIng(s.ing, 'subreceta');
     R.push({t: 'text', v: ['Procedimiento', s.proc]});
   });
