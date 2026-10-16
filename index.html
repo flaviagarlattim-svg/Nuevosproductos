@@ -645,7 +645,7 @@ $('#form').addEventListener('submit', async e => {
     const payload = {
       id: d.id, rows,
       fotos: d.fotos.map(f => ({name: f.name, mime: 'image/jpeg', b64: f.data.split(',')[1]})),
-      indice: {id: d.id, fecha: d.fecha, nombre: d.nombre, sede: `${d.sede} (${d.pais})`, categoria: d.categoria, autor: d.autor,
+      indice: {id: d.id, fecha: d.fecha, nombre: d.nombre, pais: d.pais, sede: d.sede, categoria: d.categoria, autor: d.autor,
                precio: `$${d.precio.toLocaleString('es-CO', {maximumFractionDigits: 2})} ${d.moneda}`, subrecetas: d.subs.length, fotos: d.fotos.length}
     };
     const r = await fetch(CONFIG.SCRIPT_URL, {method: 'POST', body: JSON.stringify(payload)});
